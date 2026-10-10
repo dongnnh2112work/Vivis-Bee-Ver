@@ -59,14 +59,16 @@ put(14, 5, [[54, 54]], { block: false }); put(14, 7, [[55, 55]], { block: false 
 put(13, 6, [[56]], { block: false }); put(16, 6, [[57]], { block: false });
 for (const [x, y] of [[1, 10], [18, 3], [18, 10]]) put(x, y, [[16]]);
 
-// ---- Meeting room: long table with chairs on both sides, plants in the corners
-put(25, 6, [[0, 1, 1, 1, 1, 1, 1, 1, 2], [27, 28, 28, 28, 28, 28, 28, 28, 29]]);
-for (const x of [26, 28, 30, 32]) { put(x, 5, [[54]], { block: false }); put(x, 8, [[55]], { block: false }); }
-put(24, 6, [[56]], { block: false }); put(34, 7, [[57]], { block: false });
+// ---- Cinema: screen on the north wall, two rows of seats facing it, a center aisle
+put(26, 3, [[347, 348, 347, 348, 347, 348], [374, 375, 374, 375, 374, 375]], { block: true, l: furniture });
+for (const x of [23, 25, 27, 33, 35, 37]) {
+  put(x, 6, [[55]], { block: false });
+  put(x, 8, [[55]], { block: false });
+}
 for (const [x, y] of [[21, 3], [38, 3], [21, 10], [38, 10]]) put(x, y, [[17]]);
 
-// ---- Hall / café: round tables with stools, a lounge rug in the middle, plants
-for (const [x, y] of [[5, 17], [11, 17], [5, 22], [11, 22], [28, 17], [34, 17], [28, 22], [34, 22]]) {
+// ---- Café, west hall only. The east hall stays open for the arcade.
+for (const [x, y] of [[5, 17], [11, 17], [5, 22], [11, 22]]) {
   put(x, y, [[7]]);
   put(x - 1, y, [[98]], { block: false }); put(x + 1, y, [[98]], { block: false });
   put(x, y - 1, [[97]], { block: false }); put(x, y + 1, [[99]], { block: false });
@@ -79,36 +81,38 @@ put(16, 17, [
   [979, 980, 980, 980, 980, 980, 980, 981],
   [1036, 1037, 1037, 1037, 1037, 1037, 1037, 1038],
 ], { block: false, l: rugs, gid: R });
-put(19, 19, [[3, 4]]);
-put(19, 18, [[54, 54]], { block: false }); put(19, 20, [[55, 55]], { block: false });
-put(18, 19, [[56]], { block: false }); put(21, 19, [[57]], { block: false });
-for (const [x, y] of [[1, 14], [38, 14], [1, 26], [38, 26], [15, 14], [24, 14]]) put(x, y, [[16 + ((x + y) % 2)]]);
+for (const [x, y] of [[1, 14], [1, 26], [15, 14], [24, 14], [38, 26]]) put(x, y, [[16 + ((x + y) % 2)]]);
 
-// ---- Cinema set dressing: big screen on the meeting-room north wall
-put(27, 3, [[347, 348, 347, 348], [374, 375, 374, 375]], { block: true, l: furniture });
-
-// ---- Arcade corner (east hall): cabinet + rug marker
-put(30, 18, [[922, 923, 924], [979, 980, 981], [1036, 1037, 1038]], { block: false, l: rugs, gid: R });
-put(31, 19, [[239, 240], [266, 267]]);
+// Arcade bay, east of the cinema door so the doorway stays a clear corridor.
+// Two cabinets are drawn in Phaser; these tiles are only their footprints.
+put(33, 18, [
+  [922, 923, 923, 923, 923, 924],
+  [979, 980, 980, 980, 980, 981],
+  [1036, 1037, 1037, 1037, 1037, 1038],
+], { block: false, l: rugs, gid: R });
+for (const [x, y] of [[33, 15], [34, 15], [35, 15], [33, 16], [34, 16], [35, 16], [33, 17], [34, 17], [35, 17], [36, 15], [37, 15], [38, 15], [36, 16], [37, 16], [38, 16], [36, 17], [37, 17], [38, 17]]) solid(x, y);
 
 // ---- Objects: spawn, floor labels, interactive zones (pixels)
 let oid = 1;
 const obj = (name, type, x, y, props = []) => ({ id: oid++, name, type, x, y, width: 0, height: 0, point: true, rotation: 0, visible: true, properties: props });
 const zone = (name, x, y, w, h) => ({ id: oid++, name, type: "zone", x, y, width: w, height: h, rotation: 0, visible: true, properties: [] });
+const booth = (name, x, y) => ({ id: oid++, name, type: "booth", x, y, width: 48, height: 64, rotation: 0, visible: true, properties: [] });
 const objects = [
   obj("spawn", "spawn", 19.5 * 16, 24.5 * 16),
-  obj("Lounge", "label", 4 * 16, 9.6 * 16),
-  obj("Cinema", "label", 29.5 * 16, 9.6 * 16),
-  obj("Café", "label", 8 * 16, 25.6 * 16),
-  obj("Arcade", "label", 32 * 16, 16.2 * 16),
-  obj("HOWL STUDIO", "label", 20 * 16, 15.4 * 16),
-  // Meeting room = shared cinema (watch YouTube together). Enter through the east door.
+  obj("Lounge", "label", 10 * 16, 9.4 * 16),
+  obj("Cinema", "label", 30 * 16, 10 * 16),
+  obj("Café", "label", 8 * 16, 25.2 * 16),
+  obj("Arcade", "label", 35.5 * 16, 21.4 * 16),
+  obj("Ranks", "label", 30 * 16, 23.2 * 16),
+  booth("pattern", 33 * 16, 15 * 16),
+  booth("momo", 36 * 16, 15 * 16),
+  obj("HOWL STUDIO", "label", 20 * 16, 16.2 * 16),
+  // Seats and screen only. The east door (tiles 29–31) stays outside this box.
   zone("cinema", 21 * 16, 3 * 16, 18 * 16, 8 * 16),
-  // Tiles you can stand on beside the arcade cabinet (31–32, 19–20).
-  // Not the whole east hall: that rectangle reached the south corridor, so the
-  // play prompt appeared before you had walked up to the machine.
-  zone("arcade", 29 * 16, 18 * 16, 6 * 16, 5 * 16),
-  zone("leaderboard", 27 * 16, 14 * 16, 6 * 16, 3 * 16),
+  // One machine, one standing tile. The cinema door corridor (x 29–31) is left clear.
+  zone("arcade", 33 * 16, 19 * 16, 3 * 16, 2 * 16),
+  zone("momo", 36 * 16, 19 * 16, 3 * 16, 2 * 16),
+  zone("leaderboard", 29 * 16, 22 * 16, 4 * 16, 2 * 16),
 ];
 void DOORS;
 

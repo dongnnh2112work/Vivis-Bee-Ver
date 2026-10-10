@@ -40,7 +40,7 @@ import { CHARACTER_COUNT, characterFor } from "@/lib/room";
 
 export type Person = { id: string; name: string; character: number };
 export type JoystickInput = { x: number; y: number };
-export type ZoneFlags = { cinema: boolean; arcade: boolean; leaderboard: boolean };
+export type ZoneFlags = { cinema: boolean; arcade: boolean; leaderboard: boolean; momo: boolean };
 
 export type OfficeHandle = {
   destroy(): void;
@@ -133,6 +133,47 @@ function onPath(points: Pt[], pingPong: boolean, t: number): { x: number; y: num
 
 export async function startOffice(o: Options): Promise<OfficeHandle> {
   const Phaser = await import("phaser");
+
+  const paintCabinet = (scene: Phaser.Scene, key: string, x: number, y: number, body: string, shade: string, hot: string, glow: string) => {
+    const w = 48;
+    const h = 64;
+    if (!scene.textures.exists(key)) {
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      const px = (x0: number, y0: number, w0: number, h0: number, color: string) => {
+        ctx.fillStyle = color;
+        ctx.fillRect(x0, y0, w0, h0);
+      };
+      const ink = "#1a0a10";
+      px(6, 0, 36, 12, ink);
+      px(8, 2, 32, 8, hot);
+      for (let i = 0; i < 6; i++) px(10 + i * 5, 7, 2, 2, "#ffe08a");
+      px(4, 10, 40, 48, ink);
+      px(6, 12, 36, 44, body);
+      px(6, 12, 4, 44, shade);
+      px(38, 12, 4, 44, hot);
+      px(10, 16, 28, 20, ink);
+      px(12, 18, 24, 16, "#140814");
+      px(14, 20, 20, 12, "#241428");
+      px(16, 22, 12, 2, glow);
+      px(16, 26, 8, 2, shade);
+      px(8, 38, 32, 10, "#2a1020");
+      px(12, 40, 2, 5, "#d7d7dc");
+      px(11, 39, 4, 3, hot);
+      px(24, 41, 4, 4, "#e21b3c");
+      px(30, 41, 4, 4, "#1368ce");
+      px(18, 50, 12, 6, ink);
+      px(20, 52, 8, 3, "#c9a227");
+      px(10, 58, 6, 6, ink);
+      px(32, 58, 6, 6, ink);
+      scene.textures.addCanvas(key, canvas);
+      scene.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    scene.add.image(x + w / 2, y + h / 2, key).setDepth(10 + y + h - 8);
+  };
   type Sprite = Phaser.GameObjects.Sprite;
   type Bubble = { root: Phaser.GameObjects.Container; until: number; text: string };
   type FloatReact = { root: Phaser.GameObjects.Text; until: number };
@@ -222,6 +263,10 @@ export async function startOffice(o: Options): Promise<OfficeHandle> {
           w: ob.width || 16,
           h: ob.height || 16,
         }));
+      for (const ob of objects.filter((item) => item.type === "booth")) {
+        if (ob.name === "momo") paintCabinet(this, "cab-momo", ob.x ?? 0, ob.y ?? 0, "#a50064", "#6d0f42", "#ff4f9a", "#ffb3d4");
+        if (ob.name === "pattern") paintCabinet(this, "cab-pattern", ob.x ?? 0, ob.y ?? 0, "#1d4e89", "#163a66", "#5aa6ff", "#d6e8ff");
+      }
 
       // Spawn near the map's spawn point, on a free tile.
       const sp = objects.find((ob) => ob.type === "spawn") ?? { x: this.mapW / 2, y: this.mapH / 2 };
@@ -406,12 +451,12 @@ export async function startOffice(o: Options): Promise<OfficeHandle> {
       const x = this.self.sprite.x;
       const y = this.self.floorY ?? this.self.sprite.y;
       const hit = (name: string) => this.zones.some((z) => z.name === name && x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h);
-      return { cinema: hit("cinema"), arcade: hit("arcade"), leaderboard: hit("leaderboard") };
+      return { cinema: hit("cinema"), arcade: hit("arcade"), leaderboard: hit("leaderboard"), momo: hit("momo") };
     }
 
     publishZones() {
       const z = this.currentZones();
-      const key = `${z.cinema}|${z.arcade}|${z.leaderboard}`;
+      const key = `${z.cinema}|${z.arcade}|${z.leaderboard}|${z.momo}`;
       if (key === this.zoneKey) return;
       this.zoneKey = key;
       o.onZones(z);

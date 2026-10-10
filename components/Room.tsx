@@ -9,6 +9,7 @@ import { ProximityChat } from "./ProximityChat";
 import { CinemaPanel } from "./CinemaPanel";
 import { Leaderboard } from "./Leaderboard";
 import { MiniGame } from "./MiniGame";
+import { MomoQuiz } from "./MomoQuiz";
 import { createTransport, realtimeConfigured, type CinemaMsg, type PeerMeta, type TransportKind, type TransportStatus } from "@/lib/realtime";
 import { characterFor, colorFor } from "@/lib/room";
 import { validateName } from "@/lib/name";
@@ -64,7 +65,7 @@ export function Room({ roomId }: { roomId: string }) {
   const officeRef = useRef<OfficeHandle | null>(null);
   const chatOpenRef = useRef(false);
   const nearRef = useRef<Map<string, string>>(new Map());
-  const zonesRef = useRef<ZoneFlags>({ cinema: false, arcade: false, leaderboard: false });
+  const zonesRef = useRef<ZoneFlags>({ cinema: false, arcade: false, leaderboard: false, momo: false });
   // Client-only component (loaded with ssr:false), so sessionStorage is available here.
   const [me, setMe] = useState<PeerMeta | null>(() => {
     const name = readName();
@@ -86,10 +87,11 @@ export function Room({ roomId }: { roomId: string }) {
   const [lines, setLines] = useState<TranscriptLine[]>([]);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatNotice, setChatNotice] = useState<string | null>(null);
-  const [zones, setZones] = useState<ZoneFlags>({ cinema: false, arcade: false, leaderboard: false });
+  const [zones, setZones] = useState<ZoneFlags>({ cinema: false, arcade: false, leaderboard: false, momo: false });
   const [cinemaOpen, setCinemaOpen] = useState(false);
   const [cinemaState, setCinemaState] = useState<CinemaMsg | null>(null);
   const [gameOpen, setGameOpen] = useState(false);
+  const [momoOpen, setMomoOpen] = useState(false);
   const [boardModal, setBoardModal] = useState(false);
   const [reactOpen, setReactOpen] = useState(false);
 
@@ -106,8 +108,9 @@ export function Room({ roomId }: { roomId: string }) {
     setCinemaOpen(false);
     setCinemaState(null);
     setGameOpen(false);
+    setMomoOpen(false);
     setBoardModal(false);
-    setZones({ cinema: false, arcade: false, leaderboard: false });
+    setZones({ cinema: false, arcade: false, leaderboard: false, momo: false });
   }
 
   useEffect(() => { chatOpenRef.current = chatOpen; }, [chatOpen]);
@@ -125,8 +128,8 @@ export function Room({ roomId }: { roomId: string }) {
   }, [zones.cinema, cinemaOpen]);
 
   useEffect(() => {
-    officeRef.current?.setLocked(cinemaOpen || gameOpen || boardModal);
-  }, [cinemaOpen, gameOpen, boardModal]);
+    officeRef.current?.setLocked(cinemaOpen || gameOpen || momoOpen || boardModal);
+  }, [cinemaOpen, gameOpen, momoOpen, boardModal]);
 
   useEffect(() => {
     if (!me) return;
@@ -228,8 +231,8 @@ export function Room({ roomId }: { roomId: string }) {
     </>
   );
 
-  const modalOpen = cinemaOpen || gameOpen || boardModal;
-  const showBoardNear = (zones.leaderboard || zones.arcade) && !modalOpen && !demo && !loading;
+  const modalOpen = cinemaOpen || gameOpen || momoOpen || boardModal;
+  const showBoardNear = zones.leaderboard && !modalOpen && !demo && !loading;
 
   return (
     <div className="vv-room fixed inset-0 overflow-hidden bg-[#1d1d1f]">
@@ -256,7 +259,7 @@ export function Room({ roomId }: { roomId: string }) {
           type="button"
           data-testid="jump-btn"
           onClick={() => { officeRef.current?.jump(); }}
-          className="vv-glass vv-focus absolute z-20 grid size-14 place-items-center rounded-full text-foreground"
+          className="vv-glass vv-focus absolute z-20 grid size-14 place-items-center rounded-full text-foreground md:hidden"
           style={{ right: "max(16px, env(safe-area-inset-right))", bottom: "max(18px, env(safe-area-inset-bottom))" }}
           aria-label="Jump"
         >
@@ -319,7 +322,7 @@ export function Room({ roomId }: { roomId: string }) {
         {list}
       </aside>
 
-      <Leaderboard roomId={roomId} open={showBoardNear} variant="compact" title="Arcade ranks" />
+      <Leaderboard roomId={roomId} open={showBoardNear} variant="compact" title="Pattern Memory" />
 
       {!demo && !loading && !modalOpen && (
         <div
@@ -360,8 +363,8 @@ export function Room({ roomId }: { roomId: string }) {
         </div>
       )}
 
-      {!demo && !loading && !modalOpen && (zones.cinema || zones.arcade || zones.leaderboard) && (
-        <div className="vv-zone-prompt absolute left-1/2 z-20 flex max-w-[calc(100vw-32px)] -translate-x-1/2 flex-col items-center gap-2">
+      {!demo && !loading && !modalOpen && (zones.cinema || zones.arcade || zones.momo || zones.leaderboard) && (
+        <div className="vv-zone-prompt absolute left-1/2 z-20 flex max-w-[calc(100vw-24px)] -translate-x-1/2 flex-row flex-wrap items-center justify-center gap-2">
           {zones.cinema && (
             <button
               type="button"
@@ -382,14 +385,24 @@ export function Room({ roomId }: { roomId: string }) {
               Play Pattern Memory
             </button>
           )}
-          {zones.leaderboard && !zones.arcade && (
+          {zones.momo && (
+            <button
+              type="button"
+              data-testid="zone-momo"
+              onClick={() => setMomoOpen(true)}
+              className="vv-focus h-11 rounded-full bg-[#a50064] px-3.5 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgba(165,0,100,0.35)] hover:bg-[#c41274]"
+            >
+              Chơi MoMo Quiz
+            </button>
+          )}
+          {zones.leaderboard && (
             <button
               type="button"
               data-testid="zone-leaderboard"
               onClick={() => setBoardModal(true)}
               className="vv-glass vv-focus h-11 rounded-full px-3.5 text-[14px] font-medium"
             >
-              View ranks
+              Open full ranks
             </button>
           )}
         </div>
@@ -427,6 +440,13 @@ export function Room({ roomId }: { roomId: string }) {
         playerName={me.name}
         open={gameOpen && !demo}
         onClose={() => setGameOpen(false)}
+      />
+
+      <MomoQuiz
+        roomId={roomId}
+        playerName={me.name}
+        open={momoOpen && !demo}
+        onClose={() => setMomoOpen(false)}
       />
 
       <Leaderboard
